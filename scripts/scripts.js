@@ -119,7 +119,7 @@ const CONFIG = {
     // Langstore Support.
     langstore: { ietf: 'en-US', tk: 'hah7vzn.css' },
   },
-  geoRouting: 'on',
+  geoRouting: window.location.hostname === "" ? 'off' : 'on',
   productionDomain: 'business.adobe.com',
   prodDomains: ['business.adobe.com', 'www.adobe.com'],
   autoBlocks: [
