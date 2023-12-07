@@ -11,6 +11,47 @@
  */
 
 import { setLibs } from './utils.js';
+import {
+  toClassName,
+  getMetadata,
+  loadCSS,
+  loadScript,
+  sampleRUM,
+  toCamelCase,
+} from './aem.js';
+
+const AUDIENCES = {
+  mobile: () => window.innerWidth < 600,
+  desktop: () => window.innerWidth >= 600,
+  // TODO: define your custom audiences here as needed
+};
+
+/**
+ * Gets all the metadata elements that are in the given scope.
+ * @param {String} scope The scope/prefix for the metadata
+ * @returns an array of HTMLElement nodes that match the given scope
+ */
+export default function getAllMetadata(scope) {
+  return [...document.head.querySelectorAll(`meta[property^="${scope}:"],meta[name^="${scope}-"]`)]
+    .reduce((res, meta) => {
+      const id = toClassName(meta.name
+        ? meta.name.substring(scope.length + 1)
+        : meta.getAttribute('property').split(':')[1]);
+      res[id] = meta.getAttribute('content');
+      return res;
+    }, {});
+}
+
+// Define an execution context
+const pluginContext = {
+  getAllMetadata,
+  getMetadata,
+  loadCSS,
+  loadScript,
+  sampleRUM,
+  toCamelCase,
+  toClassName,
+};
 
 const LIBS = '/libs';
 const STYLES = ['/styles/styles.css', '/styles/faas.css'];
@@ -119,7 +160,7 @@ const CONFIG = {
     // Langstore Support.
     langstore: { ietf: 'en-US', tk: 'hah7vzn.css' },
   },
-  geoRouting: window.location.hostname === "" ? 'off' : 'on',
+  geoRouting: window.location.hostname === '' ? 'off' : 'on',
   productionDomain: 'business.adobe.com',
   prodDomains: ['business.adobe.com', 'www.adobe.com'],
   autoBlocks: [
@@ -168,6 +209,14 @@ const miloLibs = setLibs(LIBS);
 }());
 
 (async function loadPage() {
+  // Add below snippet early in the eager phase
+  if (getMetadata('experiment')
+    || Object.keys(getAllMetadata('campaign')).length
+    || Object.keys(getAllMetadata('audience')).length) {
+    // eslint-disable-next-line import/no-relative-packages
+    const { loadEager: runEager } = await import('../plugins/experimentation/src/index.js');
+    await runEager(document, { audiences: AUDIENCES }, pluginContext);
+  }
   const { loadArea, loadLana, setConfig, createTag } = await import(`${miloLibs}/utils/utils.js`);
   const metaCta = document.querySelector('meta[name="chat-cta"]');
   if (metaCta && !document.querySelector('.chat-cta')) {
