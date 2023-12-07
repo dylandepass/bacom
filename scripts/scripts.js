@@ -18,7 +18,7 @@ import {
   loadScript,
   sampleRUM,
   toCamelCase,
-} from './aem.js';
+} from './lib-franklin.js';
 
 const AUDIENCES = {
   mobile: () => window.innerWidth < 600,
